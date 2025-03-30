@@ -2,8 +2,6 @@ pipeline {
     agent any
     environment {
         ACR_LOGIN_SERVER = 'flaskacr12333.azurecr.io'
-        ACR_USERNAME = credentials('acr-username') 
-        ACR_PASSWORD = credentials('acr-password') 
     }
     stages {
         stage('Clone repo') {
@@ -16,14 +14,15 @@ pipeline {
                 sh 'docker build -t flask-api .'
             }
         }
-        stage('Run Tests') {
+        stage('Login to ACR') {
             steps {
-                sh 'docker run --rm flask-api pytest'
+                withCredentials([usernamePassword(credentialsId: 'acr-credentials', usernameVariable: 'ACR_USERNAME', passwordVariable: 'ACR_PASSWORD')]) {
+                    sh 'docker login $ACR_LOGIN_SERVER -u $ACR_USERNAME -p $ACR_PASSWORD'
+                }
             }
         }
         stage('Push to ACR') {
             steps {
-                sh 'docker login $ACR_LOGIN_SERVER -u $ACR_USERNAME -p $ACR_PASSWORD'
                 sh 'docker tag flask-api $ACR_LOGIN_SERVER/flask-api:latest'
                 sh 'docker push $ACR_LOGIN_SERVER/flask-api:latest'
             }
@@ -34,5 +33,6 @@ pipeline {
                 sh 'az webapp restart --name flask-app --resource-group flask-rg'
             }
         }
+    }
     }
 }
