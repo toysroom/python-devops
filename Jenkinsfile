@@ -34,6 +34,7 @@ pipeline {
         stage('Deploy to Azure App Service') {
             steps {
                 withCredentials([azureServicePrincipal('24d44371-bb86-4754-a344-9ab7396e1290')]) {
+                    sh 'echo $AZURE_SUBSCRIPTION_ID' 
                     sh 'az account set --subscription $AZURE_SUBSCRIPTION_ID'
                     sh 'az webapp config container set --name flask-app --resource-group flask-rg --docker-custom-image-name $ACR_LOGIN_SERVER/flask-api:latest'
                     sh 'az webapp restart --name flask-app --resource-group flask-rg'
