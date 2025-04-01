@@ -5,7 +5,7 @@ app = Flask(__name__)
 
 @app.route("/", methods=["GET"])
 def home():
-    return jsonify({"message": "API di test funzionante2333!"})
+    return jsonify({"message": "API di test funzionante!"})
 
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 5000))
