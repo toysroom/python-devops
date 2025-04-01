@@ -6,7 +6,9 @@ pipeline {
     stages {
         stage('Clone repo') {
             steps {
+                sh 'pwd'  // Mostra la directory attuale
                 git 'https://github.com/toysroom/python-devops.git'
+                sh 'ls -la'  // Controlla se i file sono stati clonati
             }
         }
         stage('Build Docker Image') {
