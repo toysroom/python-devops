@@ -31,16 +31,16 @@ pipeline {
                 sh 'docker push $ACR_LOGIN_SERVER/flask-api:latest'
             }
         }
-        // stage('Deploy to Azure App Service') {
-        //     steps {
-        //         withCredentials([azureServicePrincipal('24d44371-bb86-4754-a344-9ab7396e1290')]) {
-        //             sh 'az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET -t $AZURE_TENANT_ID'
-        //             sh 'az account show' 
-        //             sh 'az account set --subscription $AZURE_SUBSCRIPTION_ID'
-        //             sh 'az webapp config container set --name flask-app12333 --resource-group flask-rg --docker-custom-image-name $ACR_LOGIN_SERVER/flask-api:latest'
-        //             sh 'az webapp restart --name flask-app12333 --resource-group flask-rg'
-        //         }
-        //     }
-        // }
+        stage('Deploy to Azure App Service') {
+            steps {
+                withCredentials([azureServicePrincipal('b1117f31-b4d7-4a67-8207-4b8742f03c18')]) {
+                    sh 'az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET -t $AZURE_TENANT_ID'
+                    sh 'az account show' 
+                    sh 'az account set --subscription $AZURE_SUBSCRIPTION_ID'
+                    sh 'az webapp config container set --name flask-app12345 --resource-group flask-rg --docker-custom-image-name $ACR_LOGIN_SERVER/flask-api:latest'
+                    sh 'az webapp restart --name flask-app12345 --resource-group flask-rg'
+                }
+            }
+        }
     }
 }
