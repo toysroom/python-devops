@@ -13,6 +13,8 @@ pipeline {
         }
         stage('Build Docker Image') {
             steps {
+                sh 'pwd'
+                sh 'whoami'
                 sh 'docker build -t flask-api .'
             }
         }
