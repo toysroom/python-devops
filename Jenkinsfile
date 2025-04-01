@@ -33,8 +33,10 @@ pipeline {
         }
         stage('Deploy to Azure App Service') {
             steps {
-                sh 'az webapp config container set --name flask-app --resource-group flask-rg --docker-custom-image-name $ACR_LOGIN_SERVER/flask-api:latest'
-                sh 'az webapp restart --name flask-app --resource-group flask-rg'
+                withCredentials([azureServicePrincipal('azure_service_principal')]) {
+                    sh 'az webapp config container set --name flask-app --resource-group flask-rg --docker-custom-image-name $ACR_LOGIN_SERVER/flask-api:latest'
+                    sh 'az webapp restart --name flask-app --resource-group flask-rg'
+                }
             }
         }
     }
