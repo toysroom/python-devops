@@ -1,8 +1,8 @@
 pipeline {
     agent any
-    environment {
-        // ACR_LOGIN_SERVER = 'flaskacr12333.azurecr.io'
-    }
+    // environment {
+    //     // ACR_LOGIN_SERVER = 'flaskacr12333.azurecr.io'
+    // }
     stages {
         stage('Clone repo') {
             steps {
