@@ -37,7 +37,7 @@ pipeline {
                     sh 'az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET -t $AZURE_TENANT_ID'
                     sh 'az account show' 
                     sh 'az account set --subscription $AZURE_SUBSCRIPTION_ID'
-                    sh 'az webapp config container set --name flask-app12345 --resource-group flask-rg --container-image-name $ACR_LOGIN_SERVER/flask-api:latest'
+                    sh 'az webapp config container set --name flask-app12345 --resource-group flask-rg --docker-custom-image-name $ACR_LOGIN_SERVER/flask-api:latest --docker-registry-server-url https://flaskacr12345.azurecr.io'
                     sh 'az webapp restart --name flask-app12345 --resource-group flask-rg'
                 }
             }
