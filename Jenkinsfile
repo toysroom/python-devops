@@ -33,7 +33,7 @@ pipeline {
         }
         stage('Deploy to Azure App Service') {
             steps {
-                withCredentials([azureServicePrincipal('b1117f31-b4d7-4a67-8207-4b8742f03c18')]) {
+                withCredentials([azureServicePrincipal('2a92f45e-16a9-4995-b65c-6a29875d3857')]) {
                     sh 'az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET -t $AZURE_TENANT_ID'
                     sh 'az account show' 
                     sh 'az account set --subscription $AZURE_SUBSCRIPTION_ID'
