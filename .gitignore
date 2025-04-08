@@ -1,3 +1,6 @@
 venv
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.*
 ansible
-terraform
