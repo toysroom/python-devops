@@ -82,4 +82,49 @@ TRIGGER github
 
 
 
-a8d5df23bce6402bacac3b1173a6099b
+
+
+
+
+Terraform crea:
+    Resource Group
+    ACR
+    VM con IP pubblico
+    App Service Plan + Web App
+
+Ansible:
+    Si connette alla VM via SSH
+    Installa Docker e Jenkins
+    Configura Jenkins (opzionale: installa plugin, crea job, ecc.)
+
+
+TERRAFORM
+
+brew tap hashicorp/tap
+
+brew install hashicorp/tap/terraform
+
+terraform -v
+
+
+az ad sp create-for-rbac
+
+az role assignment create --assignee <appId> --role Contributor --scope /subscriptions/<subscriptionid>
+
+terraform init
+
+terraform plan
+
+terraform apply
+terraform apply -auto-approve
+
+
+
+
+ANSIBLE
+
+brew install ansible
+
+ansible --version
+
+ansible-playbook -i inventory_file playbook.yml
