@@ -20,7 +20,7 @@ pipeline {
         }
         stage('Login to ACR') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'afcd367d-dd34-4e65-95b0-eb3428008a4c', usernameVariable: 'ACR_USERNAME', passwordVariable: 'ACR_PASSWORD')]) {
+                withCredentials([usernamePassword(credentialsId: 'acr-id', usernameVariable: 'ACR_USERNAME', passwordVariable: 'ACR_PASSWORD')]) {
                     sh 'docker login $ACR_LOGIN_SERVER -u $ACR_USERNAME -p $ACR_PASSWORD'
                 }
             }
