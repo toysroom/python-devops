@@ -1,0 +1,7 @@
+<com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
+    <scope>GLOBAL</scope>
+    <id>acr-id</id>
+    <description>My ACR Credentials</description>
+    <username>flaskacr12345</username>
+    <password></password>
+</com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>

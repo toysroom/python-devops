@@ -1,0 +1,158 @@
+---
+- name: Setup Jenkins with Docker
+  hosts: jenkins
+  become: true
+  tasks:
+    - name: Install Docker and dependencies
+      apt:
+        name: "{{ item }}"
+        state: present
+        update_cache: yes
+      loop:
+        - docker.io
+
+    - name: Add azureuser to docker group
+      user:
+        name: azureuser
+        groups: docker
+        append: yes
+    
+    - name: Get docker.sock group ID on macOS/BSD
+      command: stat -c '%g' /var/run/docker.sock
+      register: docker_sock_gid
+
+    - name: Create Jenkins data volume
+      docker_volume:
+        name: jenkins_home
+
+    - name: Run Jenkins container
+      docker_container:
+        name: jenkins
+        image: jenkins/jenkins:lts
+        state: started
+        restart_policy: unless-stopped
+        published_ports:
+          - "8080:8080"
+          - "50000:50000"
+        volumes:
+          - jenkins_home:/var/jenkins_home
+          - "/var/run/docker.sock:/var/run/docker.sock"
+        groups:
+          - "{{ docker_sock_gid.stdout }}"
+
+    - name: Wait for Jenkins to start
+      wait_for:
+        host: localhost
+        port: 8080
+        delay: 10
+        timeout: 300
+        state: started
+
+    # Recupera la password di amministratore iniziale di Jenkins
+    - name: Get Jenkins initial admin password
+      command: docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+      register: jenkins_admin_password
+      become_user: root
+      retries: 5  # Tentativi in caso di fallimento
+      delay: 10  # Intervallo di tempo tra i tentativi (secondi)
+
+    # Mostra la password (per debug, opzionale)
+    - name: Display Jenkins initial admin password
+      debug:
+        var: jenkins_admin_password.stdout
+
+    - name: Install wget in Jenkins container as root
+      shell: docker exec --user root jenkins apt-get update && docker exec --user root jenkins apt-get install -y wget
+
+    - name: Install docker in Jenkins container as root
+      shell: docker exec --user root jenkins apt-get update && docker exec --user root jenkins apt-get install -y docker.io
+
+    - name: Install azure-cli in Jenkins container as root
+      shell: docker exec --user root jenkins apt-get update && docker exec --user root jenkins apt-get install -y azure-cli
+
+    - name: Download jenkins-cli.jar in existing Jenkins container
+      shell: docker exec --user root jenkins wget http://localhost:8080/jnlpJars/jenkins-cli.jar -O /usr/share/jenkins/jenkins-cli.jar
+
+    - name: Install Git plugin using jenkins-cli inside container
+      shell: > 
+        docker exec -i jenkins bash -c "echo {{ jenkins_admin_password.stdout }} | java -jar /usr/share/jenkins/jenkins-cli.jar -s http://localhost:8080 -auth admin:{{ jenkins_admin_password.stdout }} install-plugin git github workflow-aggregator -deploy"
+
+    - name: Install Git plugin using jenkins-cli inside container
+      shell: > 
+        docker exec -i jenkins bash -c "echo {{ jenkins_admin_password.stdout }} | java -jar /usr/share/jenkins/jenkins-cli.jar -s http://localhost:8080 -auth admin:{{ jenkins_admin_password.stdout }} install-plugin azure-credentials azure-cli -deploy"
+
+    - name: Restart Jenkins safely
+      shell: >
+        docker exec -i jenkins bash -c "echo {{ jenkins_admin_password.stdout }} | java -jar /usr/share/jenkins/jenkins-cli.jar
+        -s http://localhost:8080 
+        -auth admin:{{ jenkins_admin_password.stdout }} 
+        safe-restart
+        "
+
+    - name: Wait for Jenkins to start
+      wait_for:
+        host: localhost
+        port: 8080
+        delay: 30
+        timeout: 300
+        state: started   
+
+    # Mostra la password (per debug, opzionale)
+    - name: Display Jenkins initial admin password
+      debug:
+        var: jenkins_admin_password.stdout 
+
+    - name: Copy Jenkins job config to remote host
+      copy:
+        src: python-flask-config.xml
+        dest: /tmp/python-flask-config.xml
+
+    - name: Copy acr config to remote host
+      copy:
+        src: acr.xml
+        dest: /tmp/acr.xml
+
+    - name: Copy acr config to remote host
+      copy:
+        src: azure-sp.xml
+        dest: /tmp/azure-sp.xml
+
+    - name: Copy Jenkins job config to container
+      shell: docker cp /tmp/python-flask-config.xml jenkins:/var/jenkins_home/python-flask-config.xml
+
+    - name: Copy Jenkins job config to container
+      shell: docker cp /tmp/acr.xml jenkins:/var/jenkins_home/acr.xml
+
+    - name: Copy Jenkins job config to container
+      shell: docker cp /tmp/azure-sp.xml jenkins:/var/jenkins_home/azure-sp.xml
+
+    - name: Creo credentials username with password
+      shell: >
+        docker exec -i jenkins bash -c "echo {{ jenkins_admin_password.stdout }} | java -jar /usr/share/jenkins/jenkins-cli.jar
+        -s http://localhost:8080 
+        -auth admin:{{ jenkins_admin_password.stdout }} 
+        create-credentials-by-xml system::system::jenkins _ < /var/jenkins_home/acr.xml"
+      ignore_errors: true
+    
+    - name: Creo credentials sevice princpale
+      shell: >
+        docker exec -i jenkins bash -c "echo {{ jenkins_admin_password.stdout }} | java -jar /usr/share/jenkins/jenkins-cli.jar
+        -s http://localhost:8080 
+        -auth admin:{{ jenkins_admin_password.stdout }} 
+        create-credentials-by-xml system::system::jenkins _ < /var/jenkins_home/azure-sp.xml"
+      ignore_errors: true
+
+    - name: Cancellare il job Jenkins esistente
+      shell: >
+        docker exec -i jenkins bash -c "echo {{ jenkins_admin_password.stdout }} | java -jar /usr/share/jenkins/jenkins-cli.jar
+        -s http://localhost:8080 
+        -auth admin:{{ jenkins_admin_password.stdout }} 
+        delete-job python-flask"
+      ignore_errors: true
+
+    - name: Create Jenkins job using jenkins-cli
+      shell: >
+        docker exec -i jenkins bash -c "echo {{ jenkins_admin_password.stdout }} | java -jar /usr/share/jenkins/jenkins-cli.jar
+        -s http://localhost:8080 
+        -auth admin:{{ jenkins_admin_password.stdout }} 
+        create-job python-flask < /var/jenkins_home/python-flask-config.xml"

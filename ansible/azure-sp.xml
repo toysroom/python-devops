@@ -1,0 +1,13 @@
+<com.microsoft.azure.util.AzureCredentials>
+  <scope>GLOBAL</scope>
+  <id>azure-service-principal</id> <!-- Nome univoco -->
+  <description>Credenziale per Azure Service Principal</description>
+  <data>
+    <subscriptionId></subscriptionId>
+    <clientId></clientId>
+    <clientSecret></clientSecret>
+    <tenantId></tenantId>
+    <tenant></tenant>
+    <azureEnvironmentName>Azure</azureEnvironmentName> <!-- Opzionale -->
+  </data>
+</com.microsoft.azure.util.AzureCredentials>
