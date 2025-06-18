@@ -1,8 +1,10 @@
 pipeline {
     agent any
-    // environment {
-    //     ACR_LOGIN_SERVER = 'flaskacr12345.azurecr.io'
-    // }
+    
+    environment {
+        ACR_LOGIN_SERVER = 'flaskacr1234565.azurecr.io'
+    }
+    
     stages {
         stage('Clone repo') {
             steps {
@@ -21,19 +23,22 @@ pipeline {
                 sh 'docker build -t flask-api:1.0 .'
             }
         }
-        // stage('Login to ACR') {
-        //     steps {
-        //         withCredentials([usernamePassword(credentialsId: 'acr-id', usernameVariable: 'ACR_USERNAME', passwordVariable: 'ACR_PASSWORD')]) {
-        //             sh 'docker login $ACR_LOGIN_SERVER -u $ACR_USERNAME -p $ACR_PASSWORD'
-        //         }
-        //     }
-        // }
-        // stage('Push to ACR') {
-        //     steps {
-        //         sh 'docker tag flask-api $ACR_LOGIN_SERVER/flask-api:latest'
-        //         sh 'docker push $ACR_LOGIN_SERVER/flask-api:latest'
-        //     }
-        // }
+        
+        stage('Login to ACR') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'acr-id', usernameVariable: 'ACR_USERNAME', passwordVariable: 'ACR_PASSWORD')]) {
+                    sh 'docker login $ACR_LOGIN_SERVER -u $ACR_USERNAME -p $ACR_PASSWORD'
+                }
+            }
+        }
+        
+        stage('Push to ACR') {
+            steps {
+                sh 'docker tag flask-api $ACR_LOGIN_SERVER/flask-api:1.0'
+                sh 'docker push $ACR_LOGIN_SERVER/flask-api:1.0'
+            }
+        }
+
         // stage('Deploy to Azure App Service') {
         //     steps {
         //         withCredentials([azureServicePrincipal('azure-service-principal')]) {
