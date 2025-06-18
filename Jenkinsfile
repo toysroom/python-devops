@@ -11,13 +11,16 @@ pipeline {
                 sh 'ls -la'
             }
         }
-        // stage('Build Docker Image') {
-        //     steps {
-        //         sh 'pwd'
-        //         sh 'whoami'
-        //         sh 'docker build -t flask-api .'
-        //     }
-        // }
+
+        // Stage test ....
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'pwd'
+                sh 'whoami'
+                sh 'docker build -t flask-api:1.0 .'
+            }
+        }
         // stage('Login to ACR') {
         //     steps {
         //         withCredentials([usernamePassword(credentialsId: 'acr-id', usernameVariable: 'ACR_USERNAME', passwordVariable: 'ACR_PASSWORD')]) {
