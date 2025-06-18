@@ -51,4 +51,20 @@ pipeline {
             }
         }
     }
+
+    post {
+        success {
+            echo 'OK'
+            mail to: 'alessandro.brugioni@gmail.com',
+                subject: "Build Success: ${currentBuild.fullDisplayName}.",
+                body: "The build was successful! Check the logs here: ${env.BUILD_URL}"
+        }
+
+        failure {
+            echo 'KO'
+            mail to: 'alessandro.brugioni@gmail.com',
+                subject: "Build failed: ${currentBuild.fullDisplayName}",
+                body: "The build was failed!. Check the logs here: ${env.BUILD_URL}"
+        }
+    }
 }
