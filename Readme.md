@@ -8,7 +8,7 @@ AZURE
 - installazione az cli
 - az login (az login --tenant <tenant-id>)
 - creo resource group (az group create --name flask-rg --location italynorth)
-- creo container registry nel resource group (az acr create --resource-group flask-rg --name flaskacr12345 --sku Basic)
+- creo container registry nel resource group (az acr create --resource-group flask-rg --name flaskacr1234565 --sku Basic)
 - creo VM x jenkins
     az vm create --resource-group flask-rg \
     --name jenkins-vm \
@@ -18,7 +18,7 @@ AZURE
     --public-ip-sku Standard \
     --generate-ssh-keys
 
-- login ssh
+- login ssh (ssh -i ~/.ssh/id_rsa azureuser@<public_ip>)
 - installo docker 
 sudo apt update && sudo apt install -y docker.io
 sudo systemctl start docker
@@ -39,7 +39,7 @@ jenkins/jenkins:lts
 - docker ps
 - sbloccare SG sulla porta 8080 in ingresso
 - http://<IP-VM>:8080
-- sblocco jenkins
+- sblocco jenkins - docker exec -it jenkins cat /var/jenkins_home/secrets/initialAdminPassword 
 - installare plugin (locale, pipeline, git, docker)
 - ($ sudo usermod -aG docker $USER)
 
