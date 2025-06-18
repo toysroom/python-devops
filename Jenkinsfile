@@ -34,7 +34,7 @@ pipeline {
         
         stage('Push to ACR') {
             steps {
-                sh 'docker tag flask-api $ACR_LOGIN_SERVER/flask-api:1.0'
+                sh 'docker tag flask-api:1.0 $ACR_LOGIN_SERVER/flask-api:1.0'
                 sh 'docker push $ACR_LOGIN_SERVER/flask-api:1.0'
             }
         }
