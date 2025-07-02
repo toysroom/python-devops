@@ -73,11 +73,11 @@
     - name: Download jenkins-cli.jar in existing Jenkins container
       shell: docker exec --user root jenkins wget http://localhost:8080/jnlpJars/jenkins-cli.jar -O /usr/share/jenkins/jenkins-cli.jar
 
-    - name: Install Git plugin using jenkins-cli inside container
+    - name: Install Git, Github, Pipeline plugin using jenkins-cli inside container
       shell: > 
         docker exec -i jenkins bash -c "echo {{ jenkins_admin_password.stdout }} | java -jar /usr/share/jenkins/jenkins-cli.jar -s http://localhost:8080 -auth admin:{{ jenkins_admin_password.stdout }} install-plugin git github workflow-aggregator -deploy"
 
-    - name: Install Git plugin using jenkins-cli inside container
+    - name: Install Azure CLI e Azure credentials plugin using jenkins-cli inside container
       shell: > 
         docker exec -i jenkins bash -c "echo {{ jenkins_admin_password.stdout }} | java -jar /usr/share/jenkins/jenkins-cli.jar -s http://localhost:8080 -auth admin:{{ jenkins_admin_password.stdout }} install-plugin azure-credentials azure-cli -deploy"
 

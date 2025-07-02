@@ -49,20 +49,18 @@ jenkins/jenkins:lts
     apt update
     apt install -y docker.io
 
-
-
-- az acr update -n flaskacr12345 --admin-enabled true
-- az acr credential show --name flaskacr12345 
+- az acr update -n flaskacr1234565 --admin-enabled true
+- az acr credential show --name flaskacr1234565 
 - Login to ACR
 - Push to ACR
 
 
 - az appservice plan create --name flask-appservice-plan --resource-group flask-rg --is-linux --sku B1
 
-- az webapp create --name flask-app12345 --resource-group flask-rg --plan flask-appservice-plan --deployment-container-image-name flaskacr12345.azurecr.io/flask-api:latest
-
+- az webapp create --name flask-app1234565 --resource-group flask-rg --plan flask-appservice-plan --deployment-container-image-name flaskacr1234565.azurecr.io/flask-api:1.0
 
 - in jenkins aggiungre plugin azure credentials, azure cli
+
 - creare role su azure
     az ad sp create-for-rbac
 
@@ -77,8 +75,10 @@ nel container
     apt install -y azure-cli
 
 
-TRIGGER github
+dentro jenkins creare azureServicePrincipal
 
+TRIGGER github
+installare plugin github e abilitare trigger github nel job
 
 
 
@@ -108,7 +108,6 @@ terraform -v
 
 
 az ad sp create-for-rbac
-
 az role assignment create --assignee <appId> --role Contributor --scope /subscriptions/<subscriptionid>
 
 terraform init

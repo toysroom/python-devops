@@ -1,6 +1,6 @@
 variable "resource_group_name" {
   type    = string
-  default = "flask-rg"
+  default = "flask-rg-terraform"
 }
 
 variable "location" {
@@ -10,7 +10,7 @@ variable "location" {
 
 variable "acr_name" {
   type    = string
-  default = "flaskacr12345"
+  default = "flaskacr123456789"
 }
 
 variable "vm_admin_username" {

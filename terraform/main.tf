@@ -62,6 +62,15 @@ resource "azurerm_network_security_group" "nsg" {
   }
 }
 
+# Creazione dell'IP pubblico
+resource "azurerm_public_ip" "jenkins_ip" {
+  name                = "jenkins-public-ip"
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
+  allocation_method   = "Static"
+  sku                 = "Standard"
+}
+
 # Creazione della scheda di rete
 resource "azurerm_network_interface" "nic" {
   name                = "jenkins-nic"
@@ -81,14 +90,7 @@ resource "azurerm_network_interface_security_group_association" "sga" {
   network_security_group_id = azurerm_network_security_group.nsg.id
 }
 
-# Creazione dell'IP pubblico
-resource "azurerm_public_ip" "jenkins_ip" {
-  name                = "jenkins-public-ip"
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
-  allocation_method   = "Static"
-  sku                 = "Standard"
-}
+
 
 # Creazione della VM
 resource "azurerm_linux_virtual_machine" "vm" {
@@ -108,8 +110,8 @@ resource "azurerm_linux_virtual_machine" "vm" {
 
   source_image_reference {
     publisher = "Canonical"
-    offer     = "0001-com-ubuntu-server-focal"
-    sku       = "20_04-lts-gen2"
+    offer     = "0001-com-ubuntu-server-jammy"
+    sku       = "22_04-lts"
     version   = "latest"
   }
 
@@ -130,6 +132,7 @@ resource "azurerm_container_registry" "acr" {
   admin_enabled       = true
 }
 
+
 # Creazione App Service
 resource "azurerm_app_service_plan" "app_service_plan" {
   name                = "flask-appservice-plan"
@@ -145,7 +148,7 @@ resource "azurerm_app_service_plan" "app_service_plan" {
 
 # Creazione Web App Service
 resource "azurerm_linux_web_app" "flask_web_app" {
-  name                = "flask-app12345"
+  name                = "flask-app12345678"
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
   service_plan_id     = azurerm_app_service_plan.app_service_plan.id
