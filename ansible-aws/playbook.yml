@@ -1,0 +1,228 @@
+---
+- name: Setup Jenkins with Docker on AWS EC2
+  hosts: jenkins
+  become: true
+  tasks:
+    - name: Install dependencies for Docker repository setup
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: present
+        update_cache: yes
+      loop:
+        - ca-certificates
+        - curl
+        - gnupg
+        - lsb-release
+
+    - name: Create directory for apt keyrings
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Download Docker GPG key and add to apt keyrings
+      ansible.builtin.shell: |
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+      args:
+        creates: /etc/apt/keyrings/docker.gpg # Idempotenza: non eseguire se il file esiste
+
+    - name: Set permissions for Docker GPG key
+      ansible.builtin.file:
+        path: /etc/apt/keyrings/docker.gpg
+        mode: '0644'
+
+    - name: Add Docker APT repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch={{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }} signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+        filename: docker
+        update_cache: yes # Forza l'aggiornamento della cache dopo aver aggiunto il repo
+
+    - name: Install Docker Engine, containerd, and Docker Compose
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+        - docker-buildx-plugin
+        - docker-compose-plugin
+
+    - name: Ensure Docker service is running and enabled
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add ubuntu user to docker group
+      ansible.builtin.user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    - name: Log out and log back in the current user to apply group changes (or reboot)
+      ansible.builtin.meta: noop # Questo è un placeholder. I cambiamenti di gruppo richiedono una nuova sessione o un riavvio.
+                                # Ansible non può "rileggersi" i gruppi da solo in una sessione SSH persistente.
+                                # L'opzione più semplice è riavviare o usare `command: newgrp docker` per le task successive.
+                                # Per un playbook Ansible, un riavvio controllato è spesso il più affidabile.
+
+    - name: Reboot to apply docker group changes (Recommended for full effect)
+      ansible.builtin.reboot:
+        reboot_timeout: 600 # Wait up to 10 minutes for the host to come back online
+      when: ansible_user != 'root' # Riavvia solo se non siamo già root (per sicurezza)
+
+    # - name: Wait for SSH to come back after reboot
+    #   ansible.builtin.wait_for_connection:
+    #     delay: 10
+    #     timeout: 300
+    #   delegate_to: localhost # Attendi dal controller Ansible
+
+    # --- FINE NUOVE TASK ---
+
+    - name: Get docker.sock group ID on macOS/BSD
+      command: stat -c '%g' /var/run/docker.sock
+      register: docker_sock_gid
+
+    - name: Print gid
+      ansible.builtin.debug:
+        var: docker_sock_gid.stdout
+
+    - name: Create Jenkins data volume
+      community.docker.docker_volume:
+        name: jenkins_home
+
+    - name: Run Jenkins container
+      community.docker.docker_container:
+        name: jenkins
+        image: jenkins/jenkins:lts
+        state: started
+        restart_policy: unless-stopped
+        published_ports:
+          - "8080:8080"
+          - "50000:50000"
+        volumes:
+          - jenkins_home:/var/jenkins_home
+          - "/var/run/docker.sock:/var/run/docker.sock"
+        groups:
+          - "{{ docker_sock_gid.stdout }}"
+
+    # - name: Wait for Jenkins port 8080 to be open
+    #   ansible.builtin.wait_for:
+    #     host: "{{ ansible_host }}"
+    #     port: 8080
+    #     delay: 10
+    #     timeout: 600 # Still keep a generous timeout
+    #     state: started
+    #   delegate_to: localhost
+    #   become: false
+
+    - name: Wait for Jenkins HTTP service to return 200/302 OK (initial start)
+      ansible.builtin.uri:
+        url: "http://63.179.13.238:8080/login" # Target the login page
+        method: GET
+        status_code: [200, 302] # We expect either 200 OK or 302 Found (for redirect)
+        validate_certs: false # Use if you have SSL issues (less likely on initial Jenkins setup)
+      register: jenkins_status_check
+      until: jenkins_status_check.status in [200, 302] # Loop until we get 200 or 302
+      retries: 60 # Try 60 times
+      delay: 10 # Wait 10 seconds between retries (600 seconds total max wait)
+      delegate_to: localhost
+      become: false
+
+    - name: Get Jenkins initial admin password
+      ansible.builtin.command: docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+      register: jenkins_admin_password
+      become_user: root
+      retries: 5
+      delay: 10
+
+    - name: Display Jenkins initial admin password
+      ansible.builtin.debug:
+        var: jenkins_admin_password.stdout
+
+    - name: Install wget in Jenkins container as root
+      ansible.builtin.shell: docker exec --user root jenkins apt-get update && docker exec --user root jenkins apt-get install -y wget
+
+    - name: Install docker in Jenkins container as root
+      ansible.builtin.shell: docker exec --user root jenkins apt-get update && docker exec --user root jenkins apt-get install -y docker.io
+
+    - name: Install AWS CLI in Jenkins container as root
+      ansible.builtin.shell: |
+        docker exec --user root jenkins apt-get update
+        docker exec --user root jenkins apt-get install -y curl unzip
+        docker exec --user root jenkins curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
+        docker exec --user root jenkins bash -c "yes Y | unzip /tmp/awscliv2.zip -d /tmp/awscli-install"
+        docker exec --user root jenkins /tmp/awscli-install/aws/install --update
+      args:
+        creates: /usr/local/bin/aws
+
+    - name: Download jenkins-cli.jar in existing Jenkins container
+      ansible.builtin.shell: docker exec --user root jenkins wget http://localhost:8080/jnlpJars/jenkins-cli.jar -O /usr/share/jenkins/jenkins-cli.jar
+      args:
+        creates: /usr/share/jenkins/jenkins-cli.jar
+
+    - name: Install Git, Github, Pipeline plugin using jenkins-cli inside container
+      ansible.builtin.shell: |
+        docker exec -i jenkins bash -c "echo '{{ jenkins_admin_password.stdout }}' | java -jar /usr/share/jenkins/jenkins-cli.jar -s http://localhost:8080 -auth admin:'{{ jenkins_admin_password.stdout }}' install-plugin git github workflow-aggregator -deploy"
+
+    - name: Install AWS CodeBuild and AWS EC2 plugin using jenkins-cli inside container (example AWS plugins)
+      ansible.builtin.shell: |
+        docker exec -i jenkins bash -c "echo '{{ jenkins_admin_password.stdout }}' | java -jar /usr/share/jenkins/jenkins-cli.jar -s http://localhost:8080 -auth admin:'{{ jenkins_admin_password.stdout }}' install-plugin aws-codebuild aws-credentials -deploy"
+
+    - name: Restart Jenkins safely
+      ansible.builtin.shell: |
+        docker exec -i jenkins bash -c "echo '{{ jenkins_admin_password.stdout }}' | java -jar /usr/share/jenkins/jenkins-cli.jar -s http://localhost:8080 -auth admin:'{{ jenkins_admin_password.stdout }}' safe-restart"
+
+    - name: Wait for Jenkins to start after restart
+      ansible.builtin.uri:
+        url: "http://63.179.13.238:8080/login" # Target the login page
+        method: GET
+        status_code: [200, 302] # We expect either 200 OK or 302 Found (for redirect)
+        validate_certs: false # Use if you have SSL issues (less likely on initial Jenkins setup)
+      register: jenkins_status_check
+      until: jenkins_status_check.status in [200, 302] # Loop until we get 200 or 302
+      retries: 60 # Try 60 times
+      delay: 10 # Wait 10 seconds between retries (600 seconds total max wait)
+      delegate_to: localhost
+      become: false
+
+    - name: Display Jenkins initial admin password (after restart)
+      ansible.builtin.debug:
+        var: jenkins_admin_password.stdout
+
+    - name: Copy Jenkins job config to remote host
+      ansible.builtin.copy:
+        src: python-flask-config.xml
+        dest: /tmp/python-flask-config.xml
+
+    - name: Copy AWS ECR credentials config to remote host (example)
+      ansible.builtin.copy:
+        src: aws-ecr-creds.xml
+        dest: /tmp/aws-ecr-creds.xml
+
+    - name: Copy Jenkins job config to container
+      ansible.builtin.shell: docker cp /tmp/python-flask-config.xml jenkins:/var/jenkins_home/python-flask-config.xml
+
+    - name: Copy AWS ECR credentials config to container (example)
+      ansible.builtin.shell: docker cp /tmp/aws-ecr-creds.xml jenkins:/var/jenkins_home/aws-ecr-creds.xml
+
+    - name: Create Jenkins ECR credentials (example, if needed)
+      ansible.builtin.shell: |
+        docker exec -i jenkins bash -c "echo '{{ jenkins_admin_password.stdout }}' | java -jar /usr/share/jenkins/jenkins-cli.jar \
+        -s http://localhost:8080 -auth admin:'{{ jenkins_admin_password.stdout }}' \
+        create-credentials-by-xml system::system::jenkins _ < /var/jenkins_home/aws-ecr-creds.xml"
+      ignore_errors: true
+
+    - name: Cancellare il job Jenkins esistente (se esiste)
+      ansible.builtin.shell: |
+        docker exec -i jenkins bash -c "echo '{{ jenkins_admin_password.stdout }}' | java -jar /usr/share/jenkins/jenkins-cli.jar \
+        -s http://localhost:8080 -auth admin:'{{ jenkins_admin_password.stdout }}' \
+        delete-job python-flask"
+      ignore_errors: true
+
+    - name: Create Jenkins job using jenkins-cli
+      ansible.builtin.shell: |
+        docker exec -i jenkins bash -c "echo '{{ jenkins_admin_password.stdout }}' | java -jar /usr/share/jenkins/jenkins-cli.jar \
+        -s http://localhost:8080 -auth admin:'{{ jenkins_admin_password.stdout }}' \
+        create-job python-flask < /var/jenkins_home/python-flask-config.xml"

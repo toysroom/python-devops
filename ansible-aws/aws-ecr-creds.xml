@@ -1,0 +1,6 @@
+<com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
+  <scope>GLOBAL</scope>
+  <id>aws-ecr-creds</id> <description>AWS ECR Credentials for Jenkins</description>
+  <username></username>
+  <password></password>
+</com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
