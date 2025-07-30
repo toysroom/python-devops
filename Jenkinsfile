@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     environment {
-        ACR_LOGIN_SERVER = 'flaskacr1234565.azurecr.io'
+        ACR_LOGIN_SERVER = '330057236767.dkr.ecr.eu-central-1.amazonaws.com/flaskacr123456789-aws'
     }
     
     stages {
@@ -24,13 +24,13 @@ pipeline {
             }
         }
         
-        // stage('Login to ACR') {
-        //     steps {
-        //         withCredentials([usernamePassword(credentialsId: 'acr-id', usernameVariable: 'ACR_USERNAME', passwordVariable: 'ACR_PASSWORD')]) {
-        //             sh 'docker login $ACR_LOGIN_SERVER -u $ACR_USERNAME -p $ACR_PASSWORD'
-        //         }
-        //     }
-        // }
+        stage('Login to ECR') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'aws-ecr-creds', usernameVariable: 'ECR_USERNAME', passwordVariable: 'ECR_PASSWORD')]) {
+                    sh 'docker login $ACR_LOGIN_SERVER -u $ECR_USERNAME -p $ECR_PASSWORD'
+                }
+            }
+        }
         
         // stage('Push to ACR') {
         //     steps {
@@ -52,19 +52,19 @@ pipeline {
         // }
     }
 
-    post {
-        success {
-            echo 'OK'
-            mail to: 'alessandro.brugioni@gmail.com',
-                subject: "Build Success: ${currentBuild.fullDisplayName}.",
-                body: "The build was successful! Check the logs here: ${env.BUILD_URL}"
-        }
+    // post {
+    //     success {
+    //         echo 'OK'
+    //         mail to: 'alessandro.brugioni@gmail.com',
+    //             subject: "Build Success: ${currentBuild.fullDisplayName}.",
+    //             body: "The build was successful! Check the logs here: ${env.BUILD_URL}"
+    //     }
 
-        failure {
-            echo 'KO'
-            mail to: 'alessandro.brugioni@gmail.com',
-                subject: "Build failed: ${currentBuild.fullDisplayName}",
-                body: "The build was failed!. Check the logs here: ${env.BUILD_URL}"
-        }
-    }
+    //     failure {
+    //         echo 'KO'
+    //         mail to: 'alessandro.brugioni@gmail.com',
+    //             subject: "Build failed: ${currentBuild.fullDisplayName}",
+    //             body: "The build was failed!. Check the logs here: ${env.BUILD_URL}"
+    //     }
+    // }
 }
