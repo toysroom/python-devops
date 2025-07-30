@@ -27,7 +27,7 @@ pipeline {
         stage('Login to ECR') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'aws-ecr-creds', usernameVariable: 'ECR_USERNAME', passwordVariable: 'ECR_PASSWORD')]) {
-                    sh 'docker login $ACR_LOGIN_SERVER -u $ECR_USERNAME -p $ECR_PASSWORD'
+                    sh 'docker login -u $ECR_USERNAME -p $ECR_PASSWORD'
                 }
             }
         }
