@@ -1,0 +1,5 @@
+region                 = "eu-central-1"
+ssh_key_name           = "flask-key"
+ecr_name               = "flask-ecr-repo"
+ecr_image              = "123456789012.dkr.ecr.eu-central-1.amazonaws.com/flask-ecr-repo:latest"
+ecs_execution_role_arn = "arn:aws:iam::123456789012:role/ecsTaskExecutionRole"
