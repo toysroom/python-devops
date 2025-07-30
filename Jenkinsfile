@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     environment {
-        ACR_LOGIN_SERVER = '330057236767.dkr.ecr.eu-central-1.amazonaws.com/flaskacr123456789-aws'
+        ACR_LOGIN_SERVER = 'toysroom'
     }
     
     stages {
@@ -32,12 +32,12 @@ pipeline {
             }
         }
         
-        // stage('Push to ACR') {
-        //     steps {
-        //         sh 'docker tag flask-api:1.0 $ACR_LOGIN_SERVER/flask-api:1.0'
-        //         sh 'docker push $ACR_LOGIN_SERVER/flask-api:1.0'
-        //     }
-        // }
+        stage('Push to ACR') {
+            steps {
+                sh 'docker tag flask-api:1.0 $ACR_LOGIN_SERVER/flask-api:1.0'
+                sh 'docker push $ACR_LOGIN_SERVER/flask-api:1.0'
+            }
+        }
 
         // stage('Deploy to Azure App Service') {
         //     steps {
